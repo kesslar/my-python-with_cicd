@@ -1,4 +1,4 @@
-name: Python CI/CD
+name: CI on Self-Hosted Runner
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-test-lint:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
@@ -20,34 +20,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run unit tests
+      - name: Run tests
         run: pytest
 
-      - name: Lint with flake8
+      - name: Lint
         run: flake8 . --max-line-length=88 --exclude=.venv
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build-test-lint
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
+      - name: Rebuild and run container
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 192.168.1.82 >> ~/.ssh/known_hosts
-
-      - name: Deploy to Server via SSH
-        run: |
-          scp -r . jsvander@192.168.1.82:/home/user/my-python-app
-          ssh jsvander@192.168.1.82 << 'EOF'
-            cd /home/user/my-python-app
-            docker stop my-python-app || true
-            docker rm my-python-app || true
-            docker build -t my-python-app .
-            docker run -d -p 80:5000 --name my-python-app my-python-app
-          EOF
+          docker stop my-python-app || true
+          docker rm my-python-app || true
+          docker build -t my-python-app .
+          docker run -d -p 80:5000 --name my-python-app my-python-app
