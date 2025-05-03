@@ -2,10 +2,13 @@ name: CI on Self-Hosted Runner
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build-test-lint:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor == 'kesslar'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
@@ -29,6 +32,7 @@ jobs:
           flake8 . --max-line-length=88 --exclude=.venv
 
   deploy:
+    if: github.actor == 'kesslar' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     needs: build-test-lint
     steps:
