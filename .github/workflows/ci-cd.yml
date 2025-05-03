@@ -26,4 +26,3 @@ jobs:
 
       - name: Lint
         run: flake8 . --max-line-length=88 --exclude=.venv
-
