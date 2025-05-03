@@ -1,28 +1,39 @@
-name: Secure CI/CD
+name: CI on Self-Hosted Runner
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches: [ main ]
 
 jobs:
   build-test-lint:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Set up Python virtual environment
         run: |
+          python3.12 -m venv .venv
+          source .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+          pip install flake8 pytest
       - name: Run tests
-        run: pytest
-
+        run: |
+          source .venv/bin/activate
+          pytest
       - name: Lint
-        run: flake8 . --max-line-length=88 --exclude=.venv
+        run: |
+          source .venv/bin/activate
+          flake8 . --max-line-length=88 --exclude=.venv
+  deploy:
+    runs-on: self-hosted
+    needs: build-test-lint
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Rebuild and run container
+        run: |
+          docker stop my-python-app || true
+          docker rm my-python-app || true
+          docker build -t my-python-app .
+          docker run -d -p 80:5000 --name my-python-app my-python-app
