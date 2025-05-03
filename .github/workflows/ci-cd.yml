@@ -3,8 +3,6 @@ name: CI on Self-Hosted Runner
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   build-test-lint:
